@@ -331,17 +331,6 @@ void Overlay::Render()
 	ImGui::SetNextWindowSize({ 250, 250 });
 	ImGui::Begin("cheat", &RenderMenu, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar);
 
-	// example of rendering on the menu
-	ImGui::TextColored( { 0.f, 1.f, 0.f, 255 }, "Subscribe");
-
-	if (ImGui::Button("Click me!"))
-	{
-		printf("You clicked a button!\n");
-	}
-
-	// example of rendering on the overlay
-	//ImGui::GetBackgroundDrawList()->AddRect({ 50, 50 }, { 450, 450 }, ImColor(255, 255, 0, 255));
-
 	ImGui::End();
 }
 

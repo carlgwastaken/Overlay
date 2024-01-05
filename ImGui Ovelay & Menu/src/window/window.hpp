@@ -1,6 +1,10 @@
 #pragma once
 #include <d3d11.h>
 
+#include "../../ext/ImGui 1.90/imgui.h"
+#include "../../ext/ImGui 1.90/imgui_impl_dx11.h"
+#include "../../ext/ImGui 1.90/imgui_impl_win32.h"
+
 class Overlay {
 public:
 	// functions for the d3d11 device

@@ -1,10 +1,5 @@
 #include "window.hpp"
 
-// painnnnn
-#include "../../ext/ImGui 1.90/imgui.h"
-#include "../../ext/ImGui 1.90/imgui_impl_dx11.h"
-#include "../../ext/ImGui 1.90/imgui_impl_win32.h"
-
 #include <dwmapi.h>
 #include <stdio.h>
 
@@ -296,7 +291,7 @@ void Overlay::StartRender()
 
 		// If we are rendering the menu set the window styles to be able to clicked on.
 		if (RenderMenu) {
-			SetWindowLong(overlay, GWL_EXSTYLE, WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_TOPMOST);
+			SetWindowLong(overlay, GWL_EXSTYLE, WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT);
 		}
 		else {
 			SetWindowLong(overlay, GWL_EXSTYLE, WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_LAYERED);

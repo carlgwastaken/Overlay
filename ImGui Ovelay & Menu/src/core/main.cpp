@@ -30,12 +30,14 @@ int main()
 		if (overlay.RenderMenu) {
 			overlay.Render();
 		}
+		else
+			ImGui::GetBackgroundDrawList()->AddText({ 1000, 540 }, ImColor(0.0f, 1.0f, 0.0f), "Overlay Rendering!");
 
 		// if you want to render here, you could move the imgui includes to your .hpp file instead of the .cpp file!
 		overlay.EndRender();
 	}
 
-	overlay.DestroyOverlay();
-	overlay.DestroyDevice();
 	overlay.DestroyImGui();
+	overlay.DestroyDevice();
+	overlay.DestroyOverlay();
 }

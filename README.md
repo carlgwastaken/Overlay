@@ -1,4 +1,4 @@
-# ImGui Ovelay & Menu
+# ImGui Overlay & Menu
 A minimal overlay project using ImGui, Direct X11, and the WinAPI.
 
 ## Notes

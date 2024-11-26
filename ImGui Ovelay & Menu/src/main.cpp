@@ -1,32 +1,25 @@
-#include "../window/window.hpp"
+#include "window/window.hpp"
 
 #include <thread>
 
 int main()
 {
+	Overlay overlay;
 	// thread your cheat here 
 
 
 	// hide console window since we're making our own window, or use WinMain() instead.
 	//ShowWindow(GetConsoleWindow(), SW_HIDE);
 
-	overlay.shouldRun = true;
-	overlay.RenderMenu = false;
-
-	overlay.CreateOverlay();
-	overlay.CreateDevice();
-	overlay.CreateImGui();
-
 	printf("[>>] Hit insert to show the menu in this overlay!\n");
-
-	overlay.SetForeground(GetConsoleWindow());
+	overlay.SetupOverlay("totally not a cheat");
 
 	while (overlay.shouldRun)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
 		overlay.StartRender();
-		
+
 		if (overlay.RenderMenu) {
 			overlay.Render();
 		}
@@ -37,7 +30,4 @@ int main()
 		overlay.EndRender();
 	}
 
-	overlay.DestroyImGui();
-	overlay.DestroyDevice();
-	overlay.DestroyOverlay();
 }

@@ -3,20 +3,6 @@
 #include <dwmapi.h>
 #include <stdio.h>
 
-ID3D11Device* Overlay::device = nullptr;
-
-// sends rendering commands to the device
-ID3D11DeviceContext* Overlay::device_context = nullptr;
-
-// manages the buffers for rendering, also presents rendered frames.
-IDXGISwapChain* Overlay::swap_chain = nullptr;
-
-// represents the target surface for rendering
-ID3D11RenderTargetView* Overlay::render_targetview = nullptr;
-
-HWND Overlay::overlay = nullptr;
-WNDCLASSEX Overlay::wc = { };
-
 // declaration of the ImGui_ImplWin32_WndProcHandler function
 // basically integrates ImGui with the Windows message loop so ImGui can process input and events
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -36,21 +22,83 @@ LRESULT CALLBACK window_procedure(HWND window, UINT msg, WPARAM wParam, LPARAM l
 		break;
 
 	case WM_DESTROY:
-		Overlay::DestroyDevice();
-		Overlay::DestroyOverlay();
-		Overlay::DestroyImGui();
 		PostQuitMessage(0);
 		return 0;
 
 	case WM_CLOSE:
-		Overlay::DestroyDevice();
-		Overlay::DestroyOverlay();
-		Overlay::DestroyImGui();
 		return 0;
 	}
 
 	// define the window procedure
 	return DefWindowProc(window, msg, wParam, lParam);
+}
+
+float Overlay::GetRefreshRate()
+{
+	// get dxgi variables
+	IDXGIFactory* dxgiFactory = nullptr;
+	IDXGIAdapter* dxgiAdapter = nullptr;
+	IDXGIOutput* dxgiOutput = nullptr;
+	DXGI_MODE_DESC modeDesc;
+
+	// create DXGI factory
+	if (FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)(&dxgiFactory))))
+		return 60;
+
+	// get the adapter (aka GPU)
+	if (FAILED(dxgiFactory->EnumAdapters(0, &dxgiAdapter))) {
+		dxgiAdapter->Release();
+		return 60;
+	}
+
+	// get the MAIN monitor - to add multiple, you should use "dxgiAdapter->EnumOutputs" to loop through each monitor, and save it.
+	// then, you can access the refresh rate of each one and save the highest one, then set the refreshrate to that.
+	// i haven't had any issues just using the main one though.
+	if (FAILED(dxgiAdapter->EnumOutputs(0, &dxgiOutput))) {
+		dxgiAdapter->Release();
+		dxgiFactory->Release();
+		return 60;
+	}
+
+	// iterate through display modes
+	UINT numModes = 0;
+	if (FAILED(dxgiOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, 0, &numModes, nullptr))) {
+		dxgiOutput->Release();
+		dxgiAdapter->Release();
+		dxgiFactory->Release();
+		return 60;
+	}
+
+	DXGI_MODE_DESC* displayModeList = new DXGI_MODE_DESC[numModes];
+	if (FAILED(dxgiOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, 0, &numModes, displayModeList))) {
+		delete[] displayModeList;
+		dxgiOutput->Release();
+		dxgiAdapter->Release();
+		dxgiFactory->Release();
+		return 60;
+	}
+
+	float refreshRate = 60;
+	// next, find the refresh rate
+	for (int i = 0; i < numModes; ++i) {
+		// check 
+		float hz = static_cast<float>(displayModeList[i].RefreshRate.Numerator) /
+			static_cast<float>(displayModeList[i].RefreshRate.Denominator);
+		
+		// make sure hz didn't return 0, and is more or the same.
+		if (hz != 0 && hz >= refreshRate)
+			refreshRate = hz;
+	}
+
+	delete[] displayModeList;
+	dxgiOutput->Release();
+	dxgiAdapter->Release();
+	dxgiFactory->Release();
+
+	printf("[>>] Refresh rate: %f", refreshRate);
+	printf("\n"); // i genuinely do not care anymore
+
+	return refreshRate;
 }
 
 bool Overlay::CreateDevice()
@@ -69,8 +117,8 @@ bool Overlay::CreateDevice()
 	// set the pixel format
 	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-	// set the fps of the buffer (60 at the moment)
-	sd.BufferDesc.RefreshRate.Numerator = 60; 
+	// get the fps from GetRefreshRate(). If anything fails it just returns 60 anyways.
+	sd.BufferDesc.RefreshRate.Numerator = GetRefreshRate(); 
 	sd.BufferDesc.RefreshRate.Denominator = 1;
 
 	// allow mode switch (changing display modes)
@@ -127,7 +175,7 @@ bool Overlay::CreateDevice()
 
 	// can't do much more, if the hardware still isn't supported just return false.
 	if (result != S_OK) {
-		printf("Device Not Okay\n");
+		printf("[>>] Device Not Okay\n");
 		return false;
 	}
 
@@ -166,7 +214,7 @@ void Overlay::DestroyDevice()
 		printf("[>>] Device Not Found when Exiting.\n");
 }
 
-void Overlay::CreateOverlay()
+void Overlay::CreateOverlay(const char* window_name)
 {
 	// holds descriptors for the window, called a WindowClass
 	// set up window class
@@ -185,7 +233,7 @@ void Overlay::CreateOverlay()
 	overlay = CreateWindowEx(
 		WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOOLWINDOW,
 		wc.lpszClassName,
-		"cheat",
+		window_name,
 		WS_POPUP,
 		0,
 		0,
@@ -198,7 +246,7 @@ void Overlay::CreateOverlay()
 	);
 
 	if (overlay == NULL)
-		printf("Failed to create Overlay\n");
+		printf("[>>] Failed to create Overlay\n");
 
 	// set overlay window attributes to make the overlay transparent
 	SetLayeredWindowAttributes(overlay, RGB(0, 0, 0), BYTE(255), LWA_ALPHA);
@@ -249,13 +297,13 @@ bool Overlay::CreateImGui()
 
 	// Initalize ImGui for the Win32 library
 	if (!ImGui_ImplWin32_Init(overlay)) {
-		printf("Failed ImGui_ImplWin32_Init\n");
+		printf("[>>] Failed ImGui_ImplWin32_Init\n");
 		return false;
 	}
 	
 	// Initalize ImGui for DirectX 11.
 	if (!ImGui_ImplDX11_Init(device, device_context)) {
-		printf("Failed ImGui_ImplDX11_Init\n");
+		printf("[>>] Failed ImGui_ImplDX11_Init\n");
 		return false;
 	}
 
@@ -270,6 +318,8 @@ void Overlay::DestroyImGui()
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 }
+
+
 
 void Overlay::StartRender()
 {
